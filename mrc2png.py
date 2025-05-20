@@ -35,14 +35,14 @@ def convert(file, use_default_reduction_factor=False):
                 reduction = NATIVE_MODEL_RESOLUTION / px_size
                 print(f'Pixel size will change from {px_size:.4g} um/px to {(px_size*reduction):.4g} um/px')
 
-    # normalization
-    img = img.astype(np.float32)
-    img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
-    img = img.astype(np.uint8)
     # resize
     if reduction != 1:
         reduced_size = (int(h//reduction), int(w//reduction))
         img = cv2.resize(img, reduced_size, interpolation=cv2.INTER_CUBIC)
+    # normalization
+    img = img.astype(np.float32)
+    img = cv2.normalize(img, None, 0, 255, cv2.NORM_MINMAX)
+    img = img.astype(np.uint8)
     # histogram equalization
     equalized = cv2.equalizeHist(img)
     
