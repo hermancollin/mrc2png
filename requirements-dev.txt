@@ -1,0 +1,3 @@
+-r requirements.txt
+pytest
+# pyinstaller is added (and pinned) in the packaging step
