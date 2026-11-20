@@ -93,6 +93,15 @@ README.md          # end-user instructions, including first-launch security warn
 - Write `mrc2png.spec`: a `--windowed` `.app` bundle with a bundle identifier and the version in `Info.plist`. Exclude unused heavy modules to keep the bundle small.
 - Test locally on macOS. The `.app` must launch with no console window and convert a sample file.
 
+**Status (done, pending the user's manual test):**
+- `run_mrc2png.py` is the entry script, and `mrc2png.spec` builds a onedir `.app`. `scripts/build_macos.sh` builds `dist/mrc2png.app` and zips it with `ditto` as `dist/mrc2png-macos-arm64.zip`. CI will reuse this script.
+- Icon: `assets/icon.png` (1024 px source) and `assets/icon.icns`.
+- Bundle ID: `io.github.hermancollin.mrc2png`. Version from `app/__init__.py`. Ad-hoc signed by PyInstaller, arm64 only.
+- **Minimum macOS 14 (Sonoma):** the numpy 2.5.4 wheel requires it (opencv 5.0 needs 13). Recheck with `vtool -show-build` when bumping dependencies.
+- Size: about 155 MB unpacked, 62 MB zipped. Most of it is OpenCV's bundled ffmpeg and codec libraries, which `cv2` links against directly and so can't be trimmed safely.
+- Build env: `.venv/py312` (uv-managed CPython 3.12.15, Tk 9.0) with PyInstaller 6.22.3 pinned in `requirements-dev.txt`.
+- Drag-and-drop (`tkinterdnd2`) is not included yet. It isn't installed, and its compatibility with Tk 9 is untested. The GUI enables it automatically if it's present, so it can be evaluated later.
+
 ### 4. Continuous integration (macOS)
 - `build.yml`: runs on `macos-latest` (arm64). Installs the dependencies, runs pytest, runs PyInstaller, then zips the `.app` as `mrc2png-macos-arm64.zip`. Triggered by version tags (`v*`). Uploads the artifact and attaches it to the GitHub Release.
 - Also run pytest on pushes and PRs to `gui`/`master`, without packaging.
@@ -108,6 +117,8 @@ README.md          # end-user instructions, including first-launch security warn
 - Windows (`--onefile --windowed`, `mrc2png-windows.exe`) and Linux (`mrc2png-linux`) builds: add them to the CI matrix. Document SmartScreen ("More info" → "Run anyway") and `chmod +x`.
 - An Intel macOS build (a `macos-13` runner or a universal2 build), if any collaborator uses an Intel Mac.
 - Code signing and notarization.
+- Drag-and-drop with `tkinterdnd2`: check that it works with Tk 9 and bundles cleanly.
+- Optional: a simplified icon for 16 and 32 px, where the "mrc2png" text is unreadable.
 
 ## Acceptance criteria
 - [ ] A collaborator on macOS can download one zip, open the app, and convert a folder of MRCs without using a terminal.
