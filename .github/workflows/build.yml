@@ -1,0 +1,104 @@
+name: build
+
+# - Every push / PR to gui or master: run the tests.
+# - A version tag (v*): run the tests, build the macOS app, attach it to a
+#   GitHub Release. The tag must match __version__ in app/__init__.py.
+# - Manual run (Actions tab -> build -> Run workflow): tests + build, the app
+#   is uploaded as a workflow artifact only (no release).
+on:
+  push:
+    branches: [gui, master]
+    tags: ["v*"]
+  pull_request:
+    branches: [gui, master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install Python and dependencies
+        run: |
+          uv venv --python "$PYTHON_VERSION" .venv/py312
+          uv pip install --python .venv/py312/bin/python -r requirements-dev.txt
+
+      - name: Run tests
+        run: .venv/py312/bin/python -m pytest -q
+
+  build-macos:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: macos-latest   # Apple Silicon (arm64). TODO: Intel build (macos-13 runner or universal2).
+    permissions:
+      contents: write       # needed to create the release
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install Python and dependencies
+        run: |
+          uv venv --python "$PYTHON_VERSION" .venv/py312
+          uv pip install --python .venv/py312/bin/python -r requirements-dev.txt
+
+      - name: Check that the tag matches the app version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          app_version=$(.venv/py312/bin/python -c "import app; print(app.__version__)")
+          if [ "v${app_version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "::error::Tag ${GITHUB_REF_NAME} does not match __version__ = ${app_version} in app/__init__.py"
+            exit 1
+          fi
+
+      - name: Build the app
+        run: scripts/build_macos.sh .venv/py312/bin/python
+
+      - name: Smoke-test the bundled app (CLI mode)
+        run: |
+          bin=dist/mrc2png.app/Contents/MacOS/mrc2png
+          "$bin" --version
+          .venv/py312/bin/python - <<'EOF'
+          import mrcfile, numpy as np
+          rng = np.random.default_rng(0)
+          with mrcfile.new("smoke.mrc", overwrite=True) as m:
+              m.set_data(rng.integers(0, 60000, (700, 900)).astype(np.uint16))
+              m.voxel_size = 14.12
+          EOF
+          "$bin" convert -i smoke.mrc -o smoke_out
+          test -s smoke_out/smoke_resized.png
+
+      # TODO(signing): import a Developer ID certificate from repository
+      # secrets, codesign with --options runtime, then notarize and staple:
+      #   xcrun notarytool submit dist/mrc2png-macos-arm64.zip --apple-id ... --team-id ... --password ... --wait
+      #   xcrun stapler staple dist/mrc2png.app   (then re-zip)
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mrc2png-macos-arm64
+          path: dist/mrc2png-macos-arm64.zip
+          if-no-files-found: error
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/mrc2png-macos-arm64.zip
+          generate_release_notes: true
+
+  # TODO: build-windows (windows-latest, --onefile --windowed -> mrc2png-windows.exe)
+  # TODO: build-linux (ubuntu-latest, --onefile -> mrc2png-linux)
