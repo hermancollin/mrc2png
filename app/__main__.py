@@ -1,14 +1,23 @@
-"""Entry point: ``python -m app``. With arguments it runs the CLI.
+"""Entry point: ``python -m app`` (and the packaged app).
 
-Without arguments it will launch the GUI (step 2); until then it prints the
-CLI help.
+With no arguments it opens the GUI; with arguments it runs the CLI.
 """
 
 import sys
 
-from .cli import build_parser, main
+
+def run() -> int:
+    # macOS can pass a "-psn_..." process serial number to app bundles.
+    args = [a for a in sys.argv[1:] if not a.startswith("-psn_")]
+    if args:
+        from .cli import main
+
+        return main(args)
+    from .gui import main
+
+    main()
+    return 0
+
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        sys.exit(main())
-    build_parser().print_help()
+    sys.exit(run())
