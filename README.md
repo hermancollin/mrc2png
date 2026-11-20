@@ -1,4 +1,13 @@
 # mrc2png
+[![build](https://github.com/hermancollin/mrc2png/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/hermancollin/mrc2png/actions/workflows/build.yml)
+[![release](https://img.shields.io/github/v/release/hermancollin/mrc2png)](https://github.com/hermancollin/mrc2png/releases/latest)
+![platform](https://img.shields.io/badge/macOS-14%2B%20%C2%B7%20Apple%20Silicon-black?logo=apple)
+[![downloads](https://img.shields.io/github/downloads/hermancollin/mrc2png/total)](https://github.com/hermancollin/mrc2png/releases)
+
+<p align="center">
+  <img src="assets/icon.png" alt="mrc2png icon" width="128">
+</p>
+
 A small desktop app that converts electron microscopy images (`.mrc`, `.mrcs`, `.rec`) into 8-bit PNGs resampled to **4.93 nm/px**.
 
 <p align="center">
