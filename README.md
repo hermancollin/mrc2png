@@ -1,117 +1,55 @@
 # mrc2png
-Converts MRC files (electron microscopy) to 8-bit PNGs resampled to 4.93 nm/px, with min/max normalization and histogram equalization. It comes as a desktop app (GUI) and a command-line tool.
+A small desktop app that converts electron microscopy images (`.mrc`, `.mrcs`, `.rec`) into 8-bit PNGs resampled to **4.93 nm/px**.
 
 <p align="center">
   <img src="docs/screenshot.png" alt="The mrc2png window: a file list, an output folder picker, the target pixel size (4.93 nm/px) and Convert/Cancel buttons" width="720">
 </p>
 
-## Development setup
+## Download
 
-You need [uv](https://docs.astral.sh/uv/) and macOS on Apple Silicon. Use Python 3.12: its uv-managed build includes Tk, which the GUI needs. Homebrew's Python doesn't include Tk unless you also install `python-tk`.
+**[Download the latest version](https://github.com/hermancollin/mrc2png/releases/latest)**: under *Assets*, get `mrc2png-macos-arm64.zip`.
 
-```bash
-uv venv --python 3.12 .venv/py312
-uv pip install --python .venv/py312/bin/python -r requirements-dev.txt
-```
+You need a Mac with Apple Silicon (M1 or newer) running macOS 14 (Sonoma) or later. There's nothing else to install.
 
-Dependencies are pinned in `requirements.txt` (runtime) and `requirements-dev.txt` (tests and packaging). Keep `opencv-python-headless` pinned: the pixel-for-pixel tests compare against the original script, and a different OpenCV version could change the output.
+1. Double-click the zip to unpack it.
+2. Drag **mrc2png.app** into your **Applications** folder.
 
-### Run from source
+### Opening it the first time
 
-Open the GUI:
+The app isn't signed with an Apple developer certificate, so macOS blocks it the first time you open it. You only need to do this once.
 
-```bash
-.venv/py312/bin/python -m app
-```
+- **macOS 15 (Sequoia) or later:**
+  1. Double-click the app. macOS says it can't verify it; click **Done**.
+  2. Open **System Settings → Privacy & Security** and scroll down.
+  3. Next to the message about mrc2png, click **Open Anyway**, then confirm with your password.
+- **macOS 14 (Sonoma):** right-click (or Control-click) the app, choose **Open**, then click **Open** again.
 
-Convert from the command line. An output folder is required:
+## How to use it
 
-```bash
-.venv/py312/bin/python -m app convert -i path/to/file_or_folder -o path/to/output
-```
+1. **Add files.** Click **Add files…** or **Add folder…**. Folders are searched, including subfolders.
+2. **Choose an output folder.** Click **Choose…**. Leave the target pixel size at 4.93 nm/px unless you need another one.
+3. **Click Convert.** You can keep working while it runs. **Cancel** stops after the file in progress. When it's done, click **Open output folder** to see the results.
 
-Print header info (pixel size, size, sections) and optionally save it as CSV:
+Each image is saved as `<original name>_resized.png`. Files that already exist in the output folder are skipped, unless you tick **Overwrite existing PNGs**.
 
-```bash
-.venv/py312/bin/python -m app info -i path/to/folder --csv header_data.csv
-```
+### What the status column means
 
-Other `convert` options: `--target-nm`, `--px-size-nm` (override the header pixel size), `--fixed-factor` (legacy 3.5× mode) and `--overwrite`. Run `python -m app convert --help` for details.
-
-### Run the tests
-
-```bash
-.venv/py312/bin/python -m pytest -q
-```
-
-The tests compare the output pixel-for-pixel with the original script, kept unchanged in `tests/reference/mrc2png_original.py`. To also check against a real acquisition, point `MRC2PNG_REAL_SAMPLE` at an MRC file:
-
-```bash
-MRC2PNG_REAL_SAMPLE=/path/to/sample.mrc .venv/py312/bin/python -m pytest -q
-```
-
-## Building the macOS app
-
-```bash
-scripts/build_macos.sh .venv/py312/bin/python
-```
-
-This produces:
-
-| File | What it is |
+| Status | Meaning |
 |---|---|
-| `dist/mrc2png.app` | the app bundle; double-click to run |
-| `dist/mrc2png-macos-arm64.zip` | the file to distribute (about 62 MB) |
+| Ready | Will be converted. |
+| Ready, will not be upsampled | The image is already coarser than the target. It's converted at its own resolution, not enlarged. |
+| Needs pixel size (double-click) | The file has no pixel size. Double-click the row and enter it in nm/px. |
+| Not supported | The file has several sections (a stack), can't be read, or uses an unsupported data type. It's skipped. |
 
-The script deletes `build/` and `dist/`, runs PyInstaller with `mrc2png.spec`, then zips the app with `ditto`. Don't zip it with plain `zip`, which can break the bundle.
+Click a row to see the full file path and details below the list.
 
-To test the build, double-click `dist/mrc2png.app`, or run the bundled program in CLI mode:
+## What the conversion does
 
-```bash
-dist/mrc2png.app/Contents/MacOS/mrc2png convert -i path/to/file.mrc -o path/to/output
-```
+1. Reads the pixel size from the file header.
+2. Shrinks the image to the target pixel size (bicubic interpolation). Images that are already coarser are never enlarged.
+3. Stretches intensities to 0–255, then applies histogram equalization for contrast.
+4. Saves an 8-bit grayscale PNG.
 
-### Notes
-- **Apple Silicon only.** PyInstaller can't cross-compile, so the app is built for the machine's architecture. An Intel build is a TODO.
-- **macOS 14 or newer.** The NumPy 2.5 wheels require macOS 14, and the app's `LSMinimumSystemVersion` is set to match. When you bump dependencies, check the bundled binaries and update the value in `mrc2png.spec`:
-  ```bash
-  find dist/mrc2png.app -name "*.so" -o -name "*.dylib" | xargs -n1 vtool -show-build 2>/dev/null | awk '/minos/{print $2}' | sort -V | tail -1
-  ```
-- **Version.** The version number comes from `app/__init__.py` (`__version__`) and appears in the window title and `Info.plist`.
-- **Icon.** The icon is `assets/icon.icns`, built from `assets/icon.png` (1024×1024). After changing the PNG, rebuild it:
-  ```bash
-  mkdir -p icon.iconset
-  ```
-  ```bash
-  for s in 16 32 128 256 512; do sips -z $s $s assets/icon.png --out icon.iconset/icon_${s}x${s}.png; sips -z $((s*2)) $((s*2)) assets/icon.png --out icon.iconset/icon_${s}x${s}@2x.png; done
-  ```
-  ```bash
-  iconutil -c icns icon.iconset -o assets/icon.icns && rm -r icon.iconset
-  ```
-- **Signing.** The app is only ad-hoc signed, so macOS warns on first launch. A TODO in `scripts/build_macos.sh` marks where Developer ID signing and notarization will go.
+## Command line and development
 
-## Continuous integration and releases
-
-The GitHub Actions workflow in `.github/workflows/build.yml` does the following:
-
-| Trigger | What runs |
-|---|---|
-| Push or pull request to `gui` or `master` | tests |
-| Manual run (Actions tab → *build* → *Run workflow*) | tests and app build; download the zip from the run's *Artifacts* |
-| Version tag `v*` | tests, app build, and a GitHub Release with `mrc2png-macos-arm64.zip` attached |
-
-The build job also smoke-tests the packaged app: it runs the bundled program in CLI mode on a small synthetic MRC file.
-
-### Publishing a release
-
-1. Set the new version in `app/__init__.py`, for example `__version__ = "0.2.0"`, and commit it.
-2. Tag that commit with the same version, prefixed with `v`:
-   ```bash
-   git tag v0.2.0
-   ```
-3. Push the branch and the tag:
-   ```bash
-   git push origin HEAD v0.2.0
-   ```
-
-The workflow fails if the tag doesn't match `__version__`. Release notes are generated automatically from the commits and can be edited on GitHub afterwards.
+mrc2png also has a command-line interface. See the [development guide](docs/DEVELOPMENT.md) for running from source, the CLI, tests, building the app and publishing releases.

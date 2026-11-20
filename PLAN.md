@@ -117,6 +117,8 @@ README.md          # end-user instructions, including first-launch security warn
 - A short "what the conversion does" section: resampling to 4.93 nm/px, no upsampling, 8-bit with histogram equalization, `_resized.png` naming.
 - A CLI section for power users.
 
+**Status (done):** `README.md` is now a concise end-user page: screenshot, download and requirements, first-launch steps for macOS 15+ and 14, a 3-step guide, a status-column table and what the conversion does. Developer material (setup, run from source, CLI, tests, build, CI and releases) moved to `docs/DEVELOPMENT.md`, which the README links to. The download link points to `releases/latest`, which returns 404 until the first `v*` tag is published.
+
 ## Later (deferred)
 - Windows (`--onefile --windowed`, `mrc2png-windows.exe`) and Linux (`mrc2png-linux`) builds: add them to the CI matrix. Document SmartScreen ("More info" → "Run anyway") and `chmod +x`.
 - An Intel macOS build (a `macos-13` runner or a universal2 build), if any collaborator uses an Intel Mac.
