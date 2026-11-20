@@ -1,6 +1,10 @@
 # mrc2png
 Converts MRC files (electron microscopy) to 8-bit PNGs resampled to 4.93 nm/px, with min/max normalization and histogram equalization. It comes as a desktop app (GUI) and a command-line tool.
 
+<p align="center">
+  <img src="docs/screenshot.png" alt="The mrc2png window: a file list, an output folder picker, the target pixel size (4.93 nm/px) and Convert/Cancel buttons" width="720">
+</p>
+
 ## Development setup
 
 You need [uv](https://docs.astral.sh/uv/) and macOS on Apple Silicon. Use Python 3.12: its uv-managed build includes Tk, which the GUI needs. Homebrew's Python doesn't include Tk unless you also install `python-tk`.
