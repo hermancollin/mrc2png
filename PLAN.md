@@ -107,6 +107,10 @@ README.md          # end-user instructions, including first-launch security warn
 - Also run pytest on pushes and PRs to `gui`/`master`, without packaging.
 - Code signing and notarization are out of scope for now. Leave a clearly marked TODO step for macOS notarization.
 
+**Status (written, not yet run on GitHub):** `.github/workflows/build.yml` has two jobs:
+- `test`: runs on every push and PR to `gui`/`master`.
+- `build-macos`: runs on `v*` tags and manual runs. It uses the uv-managed Python 3.12, reuses `scripts/build_macos.sh`, and smoke-tests the bundled app in CLI mode on a synthetic MRC. It uploads the zip as an artifact and, for tags, attaches it to a GitHub Release (`softprops/action-gh-release@v2`). It fails if the tag doesn't match `__version__`. There are TODO hooks for signing/notarization and for the Windows/Linux jobs. The release process is documented in the README.
+
 ### 5. End-user README
 - The download link (latest Release) and first-launch steps on macOS. The app is unsigned, so Gatekeeper blocks it the first time. On macOS 15 and later, right-click → Open no longer works around this: users must open **System Settings → Privacy & Security** and click **"Open Anyway"**. Older macOS versions still allow right-click → Open. Document both.
 - A 3-step usage guide (add files → choose output folder → Convert) with a screenshot placeholder.

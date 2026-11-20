@@ -89,3 +89,29 @@ dist/mrc2png.app/Contents/MacOS/mrc2png convert -i path/to/file.mrc -o path/to/o
   iconutil -c icns icon.iconset -o assets/icon.icns && rm -r icon.iconset
   ```
 - **Signing.** The app is only ad-hoc signed, so macOS warns on first launch. A TODO in `scripts/build_macos.sh` marks where Developer ID signing and notarization will go.
+
+## Continuous integration and releases
+
+The GitHub Actions workflow in `.github/workflows/build.yml` does the following:
+
+| Trigger | What runs |
+|---|---|
+| Push or pull request to `gui` or `master` | tests |
+| Manual run (Actions tab → *build* → *Run workflow*) | tests and app build; download the zip from the run's *Artifacts* |
+| Version tag `v*` | tests, app build, and a GitHub Release with `mrc2png-macos-arm64.zip` attached |
+
+The build job also smoke-tests the packaged app: it runs the bundled program in CLI mode on a small synthetic MRC file.
+
+### Publishing a release
+
+1. Set the new version in `app/__init__.py`, for example `__version__ = "0.2.0"`, and commit it.
+2. Tag that commit with the same version, prefixed with `v`:
+   ```bash
+   git tag v0.2.0
+   ```
+3. Push the branch and the tag:
+   ```bash
+   git push origin HEAD v0.2.0
+   ```
+
+The workflow fails if the tag doesn't match `__version__`. Release notes are generated automatically from the commits and can be edited on GitHub afterwards.
