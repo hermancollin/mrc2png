@@ -33,7 +33,9 @@ The app isn't signed with an Apple developer certificate, so macOS blocks it the
   3. Next to the message about mrc2png, click **Open Anyway**, then confirm with your password.
 - **macOS 14 (Sonoma):** right-click (or Control-click) the app, choose **Open**, then click **Open** again.
 
-## How to use it
+## How to use
+
+<details><summary>Click for basic usage instructions</summary>
 
 1. **Add files.** Click **Add files…** or **Add folder…**. Folders are searched, including subfolders.
 2. **Choose an output folder.** Click **Choose…**. Leave the target pixel size at 4.93 nm/px unless you need another one.
@@ -51,6 +53,8 @@ Each image is saved as `<original name>_resized.png`. Files that already exist i
 | Not supported | The file has several sections (a stack), can't be read, or uses an unsupported data type. It's skipped. |
 
 Click a row to see the full file path and details below the list.
+
+</details>
 
 ## What the conversion does
 
