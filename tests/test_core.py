@@ -216,3 +216,14 @@ def test_batch_continues_after_failure(tmp_path):
     ok = make_mrc(tmp_path / "ok.mrc", rng_image((40, 40), "uint16"), 14.12)
     res = core.convert_batch([stack, ok], tmp_path / "out")
     assert [r.status for r in res] == ["failed", "converted"]
+
+
+def test_non_ascii_output_folder(tmp_path):
+    # cv2.imwrite can't write to such paths on Windows; core writes the bytes itself.
+    src = make_mrc(tmp_path / "img.mrc", rng_image((100, 120), "uint16"), 14.12)
+    out = tmp_path / "Données été 📁"
+    res = core.convert_file(src, out)
+    assert res.output.parent == out and res.output.exists()
+    decoded = cv2.imdecode(np.fromfile(res.output, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
+    ref = core.convert_file(src, tmp_path / "ascii")
+    assert np.array_equal(decoded, cv2.imread(str(ref.output), cv2.IMREAD_UNCHANGED))

@@ -1,10 +1,11 @@
 name: build
 
-# - Every push / PR to gui or master: run the tests.
-# - A version tag (v*): run the tests, build the macOS app, attach it to a
-#   GitHub Release. The tag must match __version__ in app/__init__.py.
-# - Manual run (Actions tab -> build -> Run workflow): tests + build, the app
-#   is uploaded as a workflow artifact only (no release).
+# - Every push / PR to gui or master: run the tests (macOS and Windows).
+# - A version tag (v*): tests, build the macOS and Windows apps, and publish
+#   both in one GitHub Release. The tag must match __version__ in
+#   app/__init__.py.
+# - Manual run (Actions tab -> build -> Run workflow, pick a branch): tests +
+#   builds; the apps are uploaded as workflow artifacts only (no release).
 on:
   push:
     branches: [gui, master]
@@ -23,9 +24,17 @@ concurrency:
 env:
   PYTHON_VERSION: "3.12"
 
+defaults:
+  run:
+    shell: bash   # Git Bash on Windows runners
+
 jobs:
   test:
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -34,17 +43,27 @@ jobs:
       - name: Install Python and dependencies
         run: |
           uv venv --python "$PYTHON_VERSION" .venv/py312
-          uv pip install --python .venv/py312/bin/python -r requirements-dev.txt
+          if [ "$RUNNER_OS" = "Windows" ]; then PY=.venv/py312/Scripts/python.exe; else PY=.venv/py312/bin/python; fi
+          echo "PY=$PY" >> "$GITHUB_ENV"
+          uv pip install --python "$PY" -r requirements-dev.txt
 
       - name: Run tests
-        run: .venv/py312/bin/python -m pytest -q
+        run: '"$PY" -m pytest -q'
 
-  build-macos:
+  build:
     needs: test
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
-    runs-on: macos-latest   # Apple Silicon (arm64). TODO: Intel build (macos-13 runner or universal2).
-    permissions:
-      contents: write       # needed to create the release
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest      # Apple Silicon (arm64). TODO: Intel build (macos-13 runner or universal2).
+            artifact: mrc2png-macos-arm64.zip
+            bin: dist/mrc2png.app/Contents/MacOS/mrc2png
+          - os: windows-latest    # x64; also runs on Windows 11 ARM through emulation.
+            artifact: mrc2png-windows-x64.exe
+            bin: dist/mrc2png-windows-x64.exe
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
@@ -53,25 +72,33 @@ jobs:
       - name: Install Python and dependencies
         run: |
           uv venv --python "$PYTHON_VERSION" .venv/py312
-          uv pip install --python .venv/py312/bin/python -r requirements-dev.txt
+          if [ "$RUNNER_OS" = "Windows" ]; then PY=.venv/py312/Scripts/python.exe; else PY=.venv/py312/bin/python; fi
+          echo "PY=$PY" >> "$GITHUB_ENV"
+          uv pip install --python "$PY" -r requirements-dev.txt
 
       - name: Check that the tag matches the app version
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          app_version=$(.venv/py312/bin/python -c "import app; print(app.__version__)")
+          app_version=$("$PY" -c "import app; print(app.__version__)")
           if [ "v${app_version}" != "${GITHUB_REF_NAME}" ]; then
             echo "::error::Tag ${GITHUB_REF_NAME} does not match __version__ = ${app_version} in app/__init__.py"
             exit 1
           fi
 
-      - name: Build the app
-        run: scripts/build_macos.sh .venv/py312/bin/python
+      - name: Build the app (macOS)
+        if: runner.os == 'macOS'
+        run: scripts/build_macos.sh "$PY"
 
-      - name: Smoke-test the bundled app (CLI mode)
+      - name: Build the app (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: scripts/build_windows.ps1 -Python $env:PY
+
+      - name: Smoke-test the packaged app (CLI mode)
         run: |
-          bin=dist/mrc2png.app/Contents/MacOS/mrc2png
+          bin="${{ matrix.bin }}"
           "$bin" --version
-          .venv/py312/bin/python - <<'EOF'
+          "$PY" - <<'EOF'
           import mrcfile, numpy as np
           rng = np.random.default_rng(0)
           with mrcfile.new("smoke.mrc", overwrite=True) as m:
@@ -81,24 +108,34 @@ jobs:
           "$bin" convert -i smoke.mrc -o smoke_out
           test -s smoke_out/smoke_resized.png
 
-      # TODO(signing): import a Developer ID certificate from repository
-      # secrets, codesign with --options runtime, then notarize and staple:
-      #   xcrun notarytool submit dist/mrc2png-macos-arm64.zip --apple-id ... --team-id ... --password ... --wait
-      #   xcrun stapler staple dist/mrc2png.app   (then re-zip)
+      # TODO(signing): macOS: import a Developer ID certificate from secrets,
+      # codesign with --options runtime, notarize (xcrun notarytool) and staple.
+      # Windows: signtool with a code-signing certificate (see build_windows.ps1).
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mrc2png-macos-arm64
-          path: dist/mrc2png-macos-arm64.zip
+          name: ${{ matrix.artifact }}
+          path: dist/${{ matrix.artifact }}
           if-no-files-found: error
 
-      - name: Attach to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write       # needed to create the release
+    steps:
+      - name: Download all builds
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/mrc2png-macos-arm64.zip
+          files: dist/*
           generate_release_notes: true
 
-  # TODO: build-windows (windows-latest, --onefile --windowed -> mrc2png-windows.exe)
-  # TODO: build-linux (ubuntu-latest, --onefile -> mrc2png-linux)
+  # TODO: Linux build (ubuntu-latest, --onefile -> mrc2png-linux)
