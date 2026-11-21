@@ -119,8 +119,21 @@ README.md          # end-user instructions, including first-launch security warn
 
 **Status (done):** `README.md` is now a concise end-user page: screenshot, download and requirements, first-launch steps for macOS 15+ and 14, a 3-step guide, a status-column table and what the conversion does. Developer material (setup, run from source, CLI, tests, build, CI and releases) moved to `docs/DEVELOPMENT.md`, which the README links to. The download link points to `releases/latest`, which returns 404 until the first `v*` tag is published.
 
+### 6. Windows build (added 2026-11-21: collaborators' machine runs Windows 11)
+Done on the `windows-build` branch. Not yet built on Windows or tested on a real Windows 11 machine.
+- `mrc2png.spec` is now cross-platform. On Windows it builds a single `--windowed` `.exe` (`dist\mrc2png-windows-x64.exe` via `scripts\build_windows.ps1`) with `assets/icon.ico` and version info read from `__version__`. OpenCV's ffmpeg video plugin is excluded.
+- Windows fixes:
+  - PNGs are written with `cv2.imencode` and Python, so non-ASCII paths work.
+  - The CLI attaches to the parent console in the windowed `.exe`.
+  - The GUI declares DPI awareness and scales its pixel sizes.
+  - The window icon replaces Tk's default feather.
+- CI: tests run on macOS and Windows. A tag builds both apps, and one `release` job publishes both files.
+- README: Windows download and first-launch steps (browser "Keep", SmartScreen "More info → Run anyway").
+
 ## Later (deferred)
-- Windows (`--onefile --windowed`, `mrc2png-windows.exe`) and Linux (`mrc2png-linux`) builds: add them to the CI matrix. Document SmartScreen ("More info" → "Run anyway") and `chmod +x`.
+- Linux build (`mrc2png-linux`): add it to the CI matrix and document `chmod +x`.
+- Windows code signing (`signtool`) to remove SmartScreen and antivirus warnings.
+- If the single `.exe` is slow to start or gets flagged by antivirus: switch to a onedir zip, or add a PyInstaller splash screen.
 - An Intel macOS build (a `macos-13` runner or a universal2 build), if any collaborator uses an Intel Mac.
 - Code signing and notarization.
 - Drag-and-drop with `tkinterdnd2`: check that it works with Tk 9 and bundles cleanly.
