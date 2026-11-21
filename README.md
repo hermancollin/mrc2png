@@ -28,7 +28,7 @@ There's nothing else to install.
 
 ### Windows
 
-1. Move `mrc2png-windows-x64.exe` somewhere convenient, such as your Desktop or Documents. It's the whole app, a single file.
+1. Move `mrc2png-windows-x64.exe` somewhere convenient, such as your Desktop or Documents. This single file is the whole app.
 2. Double-click it. It can take a few seconds to open.
 
 The app isn't signed with a Microsoft certificate, so Windows warns you the first time:
