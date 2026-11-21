@@ -279,12 +279,18 @@ def convert_file(
     equalized = cv2.equalizeHist(img)
     del img
 
-    out_dir.mkdir(parents=True, exist_ok=True)
+    # Encode in memory and write with Python: cv2.imwrite can't handle
+    # non-ASCII paths on Windows (e.g. a folder named "Données").
+    ok, png = cv2.imencode(".png", equalized)
+    if not ok:
+        raise ConversionError("Could not encode the PNG.")
     tmp = output.with_name(output.stem + ".partial.png")
     try:
-        if not cv2.imwrite(str(tmp), equalized):
-            raise ConversionError(f"Could not write the PNG to {out_dir}.")
+        out_dir.mkdir(parents=True, exist_ok=True)
+        tmp.write_bytes(png.tobytes())
         os.replace(tmp, output)
+    except OSError as e:
+        raise ConversionError(f"Could not write the PNG to {out_dir} ({e.strerror or e}).") from e
     finally:
         if tmp.exists():
             tmp.unlink()

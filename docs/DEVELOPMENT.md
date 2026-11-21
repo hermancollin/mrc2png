@@ -1,15 +1,26 @@
 # Development guide
 
-How to set up a development environment, run the tests, build the macOS app and publish a release. Run all commands from the repository root.
+How to set up a development environment, run the tests, build the macOS and Windows apps, and publish a release. Run all commands from the repository root.
 
 ## Development setup
 
-You need [uv](https://docs.astral.sh/uv/) and macOS on Apple Silicon. Use Python 3.12: its uv-managed build includes Tk, which the GUI needs. Homebrew's Python doesn't include Tk unless you also install `python-tk`.
+You need [uv](https://docs.astral.sh/uv/). Use Python 3.12: its uv-managed build includes Tk, which the GUI needs. Homebrew's Python doesn't include Tk unless you also install `python-tk`.
+
+On macOS:
 
 ```bash
 uv venv --python 3.12 .venv/py312
 uv pip install --python .venv/py312/bin/python -r requirements-dev.txt
 ```
+
+On Windows (PowerShell):
+
+```powershell
+uv venv --python 3.12 .venv\py312
+uv pip install --python .venv\py312\Scripts\python.exe -r requirements-dev.txt
+```
+
+The commands below use the macOS path `.venv/py312/bin/python`; on Windows, use `.venv\py312\Scripts\python.exe` instead.
 
 Dependencies are pinned in `requirements.txt` (runtime) and `requirements-dev.txt` (tests and packaging). Keep `opencv-python-headless` pinned: the pixel-for-pixel tests compare against the original script, and a different OpenCV version could change the output.
 
@@ -87,17 +98,44 @@ dist/mrc2png.app/Contents/MacOS/mrc2png convert -i path/to/file.mrc -o path/to/o
   ```
 - **Signing.** The app is only ad-hoc signed, so macOS warns on first launch. A TODO in `scripts/build_macos.sh` marks where Developer ID signing and notarization will go.
 
+## Building the Windows app
+
+On a Windows machine, in PowerShell:
+
+```powershell
+scripts\build_windows.ps1
+```
+
+This uses `.venv\py312\Scripts\python.exe` by default; pass `-Python <path>` to use another interpreter. It produces `dist\mrc2png-windows-x64.exe`, a single file that contains the whole app. Double-click it to test.
+
+If PowerShell refuses to run the script ("running scripts is disabled on this system"), allow local scripts for the current window only:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+### Notes
+- **Single file.** On every launch the `.exe` unpacks itself to a temporary folder, so it takes a few seconds to open. OpenCV's video plugin (`opencv_videoio_ffmpeg*.dll`) is left out because the app never reads video.
+- **Icon and version.** The icon is `assets/icon.ico`, generated from `assets/icon.png`; it's also bundled so the window uses it instead of Tk's default feather. After changing the PNG, regenerate it:
+  ```bash
+  uv run --no-project --with pillow python -c "from PIL import Image; Image.open('assets/icon.png').save('assets/icon.ico', sizes=[(s, s) for s in (16, 24, 32, 48, 64, 128, 256)])"
+  ```
+  The version shown in the `.exe`'s Properties → Details comes from `app/__init__.py`.
+- **High-DPI screens.** The GUI declares itself DPI-aware and scales its pixel sizes, so it stays sharp at 125 % or 150 % display scaling.
+- **Command line.** The `.exe` is a windowed app, but it still works from a terminal: `mrc2png-windows-x64.exe convert -i ... -o ...` writes its output to the terminal that started it. PowerShell and cmd may show the prompt again before the output ends.
+- **Signing.** The `.exe` isn't signed, so SmartScreen warns on first launch, and some antivirus tools may be suspicious of it. A TODO in `scripts/build_windows.ps1` marks where `signtool` signing will go.
+
 ## Continuous integration and releases
 
 The GitHub Actions workflow in `.github/workflows/build.yml` does the following:
 
 | Trigger | What runs |
 |---|---|
-| Push or pull request to `gui` or `master` | tests |
-| Manual run (Actions tab → *build* → *Run workflow*) | tests and app build; download the zip from the run's *Artifacts* |
-| Version tag `v*` | tests, app build, and a GitHub Release with `mrc2png-macos-arm64.zip` attached |
+| Push or pull request to `gui` or `master` | tests on macOS and Windows |
+| Manual run (Actions tab → *build* → *Run workflow*, pick a branch) | tests and both app builds; download them from the run's *Artifacts* |
+| Version tag `v*` | tests, both app builds, and one GitHub Release with `mrc2png-macos-arm64.zip` and `mrc2png-windows-x64.exe` attached |
 
-The build job also smoke-tests the packaged app: it runs the bundled program in CLI mode on a small synthetic MRC file.
+Each build job also smoke-tests the packaged app: it runs the bundled program in CLI mode on a small synthetic MRC file. The release is published by a separate job once both builds have succeeded, so a release never has only one of the two files.
 
 ### Publishing a release
 

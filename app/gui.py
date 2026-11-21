@@ -151,12 +151,23 @@ class App:
         self.dnd = TkinterDnD is not None and getattr(root, "TkdndVersion", None) is not None
         self.bold = tkfont.nametofont("TkDefaultFont").copy()
         self.bold.configure(weight="bold")
+        # Windows: pixel sizes below are designed for 96 DPI; scale them on
+        # high-DPI screens (125 %, 150 %…). macOS already handles this.
+        self.scale = 1.0
+        if sys.platform == "win32":
+            self.scale = max(1.0, root.winfo_fpixels("1i") / 96)
+            linespace = tkfont.nametofont("TkDefaultFont").metrics("linespace")
+            ttk.Style(root).configure("Treeview", rowheight=int(linespace + 6 * self.scale))
         root.title(f"{APP_NAME} {__version__}")
-        root.minsize(760, 560)
+        root.minsize(self.px(760), self.px(560))
         self._build()
         self._refresh_controls()
         root.protocol("WM_DELETE_WINDOW", self._on_close)
         root.after(POLL_MS, self._poll)
+
+    def px(self, n: int) -> int:
+        """Scale a 96-DPI pixel size for the current screen (Windows only)."""
+        return int(round(n * self.scale))
 
     # ---------------------------------------------------------------- layout
     def _build(self) -> None:
@@ -189,7 +200,7 @@ class App:
             ("status", "Status", 260, "w", True),
         ):
             self.tree.heading(c, text=label, anchor=anchor)
-            self.tree.column(c, width=w, anchor=anchor, stretch=stretch)
+            self.tree.column(c, width=self.px(w), anchor=anchor, stretch=stretch)
         for key, color in COLORS.items():
             if color:
                 self.tree.tag_configure(key, foreground=color)
@@ -206,7 +217,7 @@ class App:
             self.tree.dnd_bind("<<Drop>>", self._on_drop)
 
         ttk.Label(main, textvariable=self.detail_var, foreground=COLORS["muted"],
-                  wraplength=720, justify="left").pack(fill="x", pady=(2, 6))
+                  wraplength=self.px(720), justify="left").pack(fill="x", pady=(2, 6))
 
         # 2. Settings
         opts = ttk.Frame(main)
@@ -607,8 +618,39 @@ def create_root() -> tk.Tk:
     return tk.Tk()
 
 
+def _enable_windows_dpi_awareness() -> None:
+    """Without this, Windows bitmap-stretches the window on scaled displays (blurry text)."""
+    if sys.platform != "win32":
+        return
+    import ctypes
+
+    try:
+        ctypes.windll.shcore.SetProcessDpiAwareness(1)  # system DPI aware
+    except Exception:  # noqa: BLE001
+        try:
+            ctypes.windll.user32.SetProcessDPIAware()
+        except Exception:  # noqa: BLE001
+            pass
+
+
+def _set_windows_icon(root: tk.Tk) -> None:
+    """Replace Tk's default feather icon in the title bar and taskbar (Windows)."""
+    if sys.platform != "win32":
+        return
+    # Packaged: files are unpacked under sys._MEIPASS. From source: repo root.
+    base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
+    ico = base / "assets" / "icon.ico"
+    if ico.exists():
+        try:
+            root.iconbitmap(default=str(ico))
+        except tk.TclError:
+            pass
+
+
 def main() -> None:
+    _enable_windows_dpi_awareness()
     root = create_root()
+    _set_windows_icon(root)
     App(root)
     root.mainloop()
 
