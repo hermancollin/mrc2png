@@ -31,25 +31,27 @@ There's nothing else to install.
 1. Move `mrc2png-windows-x64.exe` somewhere convenient, such as your Desktop or Documents. This single file is the whole app.
 2. Double-click it. It can take a few seconds to open.
 
-The app isn't signed with a Microsoft certificate, so Windows warns you the first time:
-
-- **Your browser** may say the file "isn't commonly downloaded". Choose **Keep** (in Edge: **…** → **Keep** → **Show more** → **Keep anyway**).
-- **"Windows protected your PC"** (SmartScreen): click **More info**, then **Run anyway**. You only need to do this once.
-
-If your antivirus deletes or blocks the file, contact the maintainer rather than turning the antivirus off.
+> [!TIP]
+> The app isn't signed with a Microsoft certificate, so Windows warns you the first time:
+> 
+> - **Your browser** may say the file "isn't commonly downloaded". Choose **Keep** (in Edge: **…** → **Keep** → **Show more** → **Keep anyway**).
+> - **"Windows protected your PC"** (SmartScreen): click **More info**, then **Run anyway**. You only need to do this once.
+> 
+> If your antivirus deletes or blocks the file, contact the maintainer rather than turning the antivirus off.
 
 ### macOS
 
 1. Double-click the zip to unpack it.
 2. Drag **mrc2png.app** into your **Applications** folder.
 
-The app isn't signed with an Apple developer certificate, so macOS blocks it the first time you open it. You only need to do this once.
-
-- **macOS 15 (Sequoia) or later:**
-  1. Double-click the app. macOS says it can't verify it; click **Done**.
-  2. Open **System Settings → Privacy & Security** and scroll down.
-  3. Next to the message about mrc2png, click **Open Anyway**, then confirm with your password.
-- **macOS 14 (Sonoma):** right-click (or Control-click) the app, choose **Open**, then click **Open** again.
+> [!TIP]
+> The app isn't signed with an Apple developer certificate, so macOS blocks it the first time you open it. You only need to do this once.
+> 
+> - **macOS 15 (Sequoia) or later:**
+>   1. Double-click the app. macOS says it can't verify it; click **Done**.
+>   2. Open **System Settings → Privacy & Security** and scroll down.
+>   3. Next to the message about mrc2png, click **Open Anyway**, then confirm with your password.
+> - **macOS 14 (Sonoma):** right-click (or Control-click) the app, choose **Open**, then click **Open** again.
 
 ## How to use
 
