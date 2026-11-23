@@ -1,7 +1,8 @@
 # mrc2png
 [![build](https://github.com/hermancollin/mrc2png/actions/workflows/build.yml/badge.svg?branch=master)](https://github.com/hermancollin/mrc2png/actions/workflows/build.yml)
 [![release](https://img.shields.io/github/v/release/hermancollin/mrc2png)](https://github.com/hermancollin/mrc2png/releases/latest)
-![platform](https://img.shields.io/badge/macOS-14%2B%20%C2%B7%20Apple%20Silicon-black?logo=apple)
+![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows)
+![macOS](https://img.shields.io/badge/macOS-14%2B%20%C2%B7%20Apple%20Silicon-black?logo=apple)
 [![downloads](https://img.shields.io/github/downloads/hermancollin/mrc2png/total)](https://github.com/hermancollin/mrc2png/releases)
 
 <p align="center">
@@ -16,22 +17,41 @@ A small desktop app that converts electron microscopy images (`.mrc`, `.mrcs`, `
 
 ## Download
 
-**[Download the latest version](https://github.com/hermancollin/mrc2png/releases/latest)**: under *Assets*, get `mrc2png-macos-arm64.zip`.
+**[Download the latest version](https://github.com/hermancollin/mrc2png/releases/latest)** and, under *Assets*, pick the file for your computer:
 
-You need a Mac with Apple Silicon (M1 or newer) running macOS 14 (Sonoma) or later. There's nothing else to install.
+| Computer | File |
+|---|---|
+| Windows 10 or 11 (64-bit) | `mrc2png-windows-x64.exe` |
+| Mac with Apple Silicon (M1 or newer), macOS 14 or later | `mrc2png-macos-arm64.zip` |
+
+There's nothing else to install.
+
+### Windows
+
+1. Move `mrc2png-windows-x64.exe` somewhere convenient, such as your Desktop or Documents. This single file is the whole app.
+2. Double-click it. It can take a few seconds to open.
+
+> [!TIP]
+> The app isn't signed with a Microsoft certificate, so Windows warns you the first time:
+> 
+> - **Your browser** may say the file "isn't commonly downloaded". Choose **Keep** (in Edge: **…** → **Keep** → **Show more** → **Keep anyway**).
+> - **"Windows protected your PC"** (SmartScreen): click **More info**, then **Run anyway**. You only need to do this once.
+> 
+> If your antivirus deletes or blocks the file, contact the maintainer rather than turning the antivirus off.
+
+### macOS
 
 1. Double-click the zip to unpack it.
 2. Drag **mrc2png.app** into your **Applications** folder.
 
-### Opening it the first time
-
-The app isn't signed with an Apple developer certificate, so macOS blocks it the first time you open it. You only need to do this once.
-
-- **macOS 15 (Sequoia) or later:**
-  1. Double-click the app. macOS says it can't verify it; click **Done**.
-  2. Open **System Settings → Privacy & Security** and scroll down.
-  3. Next to the message about mrc2png, click **Open Anyway**, then confirm with your password.
-- **macOS 14 (Sonoma):** right-click (or Control-click) the app, choose **Open**, then click **Open** again.
+> [!TIP]
+> The app isn't signed with an Apple developer certificate, so macOS blocks it the first time you open it. You only need to do this once.
+> 
+> - **macOS 15 (Sequoia) or later:**
+>   1. Double-click the app. macOS says it can't verify it; click **Done**.
+>   2. Open **System Settings → Privacy & Security** and scroll down.
+>   3. Next to the message about mrc2png, click **Open Anyway**, then confirm with your password.
+> - **macOS 14 (Sonoma):** right-click (or Control-click) the app, choose **Open**, then click **Open** again.
 
 ## How to use
 
